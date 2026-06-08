@@ -135,7 +135,22 @@ td.text-main{color:var(--text);font-weight:500;}
 </style>
 </head>
 <body>
-<div class="app-layout">
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:10000;display:flex;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;width:400px;max-width:95vw;text-align:center;">
+    <div style="font-size:36px;margin-bottom:12px;">💳</div>
+    <div style="font-size:22px;font-weight:700;margin-bottom:6px;">RTGS Payment Manager</div>
+    <div style="font-size:13px;color:var(--text3);margin-bottom:32px;">Central Bank of India</div>
+    <button id="googleSignInBtn" onclick="startGoogleLogin()" style="display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:13px 20px;background:#fff;border:1px solid #dadce0;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500;color:#3c4043;font-family:DM Sans,sans-serif;transition:box-shadow .2s;">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/></svg>
+      Sign in with Google
+    </button>
+    <div id="loginStatus" style="margin-top:16px;font-size:12.5px;color:var(--text3);min-height:20px;"></div>
+  </div>
+</div>
+
+<div class="app-layout" id="appLayout" style="display:none;">
   <div class="sidebar">
     <div class="sidebar-logo">
       <div class="logo-text">💳 RTGS Manager</div>
@@ -151,7 +166,14 @@ td.text-main{color:var(--text);font-weight:500;}
       <div class="nav-item" id="nav-config" onclick="showPage('config')"><span class="nav-icon">⚙️</span>Configuration</div>
     </nav>
     <div class="sidebar-footer">
-      <div class="google-status"><div class="google-dot" id="googleDot"></div><span id="googleStatusText">Local storage</span></div>
+      <div id="userInfo" style="display:flex;align-items:center;gap:8px;">
+        <img id="userAvatar" src="" style="width:28px;height:28px;border-radius:50%;display:none;">
+        <div>
+          <div id="userName" style="font-size:12px;font-weight:600;color:var(--text);"></div>
+          <div id="userEmail" style="font-size:10px;color:var(--text3);"></div>
+        </div>
+        <button onclick="signOut()" title="Sign out" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:4px;">⏻</button>
+      </div>
     </div>
   </div>
 
@@ -313,36 +335,29 @@ td.text-main{color:var(--text);font-weight:500;}
         </div>
       </div>
       <div class="config-panel" id="config-google">
-        <div class="card"><div class="card-title">☁️ Google Sheets Storage</div>
-          <label class="toggle-wrap" style="margin-bottom:12px;">
-            <label class="toggle"><input type="checkbox" id="googleEnabled" onchange="saveGoogleSettings()"><span class="toggle-slider"></span></label>
-            <span class="toggle-label">Enable Google Sheets sync</span>
-          </label>
-          <div id="googleConfigSection" style="display:none;">
-            <div class="divider"></div>
-            <div class="form-grid" style="max-width:600px;">
-              <div class="form-group form-full"><label class="form-label">Google Account Email</label><input type="email" class="form-input" id="googleEmail" placeholder="yourname@gmail.com" oninput="saveGoogleSettings()"></div>
-              <div class="form-group form-full"><label class="form-label">Google OAuth Client ID</label><input type="text" class="form-input" id="googleClientId" placeholder="xxxxxxx.apps.googleusercontent.com" oninput="saveGoogleSettings()"></div>
-              <div class="form-group form-full"><label class="form-label">Sheet ID (auto-created if blank)</label><input type="text" class="form-input" id="googleSheetId" placeholder="Leave blank to auto-create" oninput="saveGoogleSettings()"></div>
-            </div>
-            <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
-              <button class="btn btn-primary btn-sm" onclick="connectGoogle()">🔗 Connect Google Account</button>
-              <button class="btn btn-ghost btn-sm" onclick="loadFromSheets()">⬇️ Load from Sheets</button>
-              <button class="btn btn-ghost btn-sm" onclick="openSheet()">📊 Open Sheet</button>
-              <button class="btn btn-danger btn-sm" onclick="disconnectGoogle()">Disconnect</button>
-            </div>
-            <div id="googleConnectStatus" class="text-sm" style="margin-top:10px;min-height:20px;"></div>
-            <div class="divider"></div>
-            <div class="text-sm" style="line-height:1.9;background:var(--surface2);padding:12px;border-radius:var(--radius-sm);margin-top:8px;">
-              <strong style="color:var(--text2);">One-time Google Cloud Setup:</strong><br>
-              1. <a href="https://console.cloud.google.com" target="_blank" style="color:var(--accent);">console.cloud.google.com</a> → Create project<br>
-              2. APIs &amp; Services → Enable <strong>Google Sheets API</strong> + <strong>Google Drive API</strong><br>
-              3. OAuth consent screen → External → Add your email as <strong>Test User</strong><br>
-              4. Credentials → Create OAuth 2.0 Client ID → Type: <strong>Web Application</strong><br>
-              5. Authorised JavaScript origins: <code style="background:var(--surface);padding:1px 6px;border-radius:3px;">https://claude.ai</code><br>
-              6. Authorised redirect URIs: <code style="background:var(--surface);padding:1px 6px;border-radius:3px;">urn:ietf:wg:oauth:2.0:oob</code><br>
-              7. Copy Client ID → paste above → click Connect
-            </div>
+        <div class="card">
+          <div class="card-title">☁️ Google Account</div>
+          <div id="googleAccountInfo" style="margin-bottom:16px;"></div>
+          <div class="form-group" style="max-width:480px;margin-bottom:16px;">
+            <label class="form-label">Google OAuth Client ID</label>
+            <input type="text" class="form-input" id="googleClientId" placeholder="xxxxxxx.apps.googleusercontent.com" oninput="DB.config.googleClientId=this.value;localStorage.setItem('rtgs_client_id',this.value);">
+            <div class="text-sm" style="margin-top:4px;">Required for Google login. Get from <a href="https://console.cloud.google.com" target="_blank" style="color:var(--accent);">Google Cloud Console</a></div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-ghost btn-sm" onclick="loadFromSheets()">⬇️ Reload from Sheets</button>
+            <button class="btn btn-ghost btn-sm" onclick="if(DB.config.googleSheetId)window.open('https://docs.google.com/spreadsheets/d/'+DB.config.googleSheetId,'_blank');else toast('No sheet linked yet','info')">📊 Open Sheet</button>
+            <button class="btn btn-danger btn-sm" onclick="signOut()">⏻ Sign Out</button>
+          </div>
+          <div class="divider"></div>
+          <div class="text-sm" style="line-height:1.9;background:var(--surface2);padding:12px;border-radius:var(--radius-sm);">
+            <strong style="color:var(--text2);">Google Cloud Setup (one time):</strong><br>
+            1. <a href="https://console.cloud.google.com" target="_blank" style="color:var(--accent);">console.cloud.google.com</a> → Create project<br>
+            2. Enable <strong>Google Sheets API</strong> + <strong>Google Drive API</strong> + <strong>Google People API</strong><br>
+            3. OAuth consent screen → External → Add your email as Test User<br>
+            4. Credentials → OAuth 2.0 Client ID → Web Application<br>
+            5. Authorised JavaScript origins: <code style="background:var(--surface);padding:2px 6px;border-radius:3px;">https://rtgs-payment-manager.netlify.app</code><br>
+            6. Authorised redirect URIs: <code style="background:var(--surface);padding:2px 6px;border-radius:3px;">https://rtgs-payment-manager.netlify.app</code><br>
+            7. Paste Client ID above → Sign out → Sign in again
           </div>
         </div>
       </div>
@@ -448,11 +463,11 @@ function defaultMapping(){return[
   {rtgsField:'Beneficiary Mobile',vendorField:'mobile',label:'Mobile No.'},
 ];}
 
-function loadDB(){try{var s=localStorage.getItem('rtgs_db');if(s){var p=JSON.parse(s);DB=Object.assign(DB,p);}}catch(e){}if(!DB.config.fieldMapping)DB.config.fieldMapping=defaultMapping();}
+function loadDB(){if(!DB.config.fieldMapping)DB.config.fieldMapping=defaultMapping();var cid=localStorage.getItem('rtgs_client_id');if(cid)DB.config.googleClientId=cid;}
 function saveDB(){
-  try{localStorage.setItem('rtgs_db',JSON.stringify(DB));}catch(e){}
+  saveUserDB();
   updateDashboard();
-  if(DB.config.googleEnabled && isTokenValid()){
+  if(isTokenValid()){
     syncToSheets().catch(function(e){console.warn('Sheets sync:',e.message);});
   }
 }
@@ -726,14 +741,7 @@ function saveOcrSettings(){
   saveDB();
 }
 
-function saveGoogleSettings(){
-  DB.config.googleEnabled=document.getElementById('googleEnabled').checked;
-  DB.config.googleEmail=document.getElementById('googleEmail').value;
-  DB.config.googleClientId=document.getElementById('googleClientId').value;
-  DB.config.googleSheetId=document.getElementById('googleSheetId').value;
-  document.getElementById('googleConfigSection').style.display=DB.config.googleEnabled?'block':'none';
-  updateGoogleBar();saveDB();
-}
+function saveGoogleSettings(){}
 
 function updateGoogleBar(){
   var dot=document.getElementById('googleDot');var text=document.getElementById('googleStatusText');
@@ -746,206 +754,202 @@ function updateGoogleBar(){
   }
 }
 
-// ── GOOGLE SHEETS INTEGRATION ──
+// ── AUTH & GOOGLE SHEETS ──
+var NETLIFY_URL = 'https://rtgs-payment-manager.netlify.app';
+var currentUser = null; // { name, email, picture, accessToken, tokenExpiry }
 
-function connectGoogle(){
-  if(!DB.config.googleClientId){toast('Enter Google OAuth Client ID first','error');return;}
-  var clientId = DB.config.googleClientId.trim();
-  var scope = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file';
-
-  // Build OAuth URL — redirect to a simple token extractor page
-  // We use a data URI page as redirect target: not blocked, no hosting needed
-  // Google does NOT allow data: URIs as redirect_uri, so we use oob / token display approach
-  // Best working approach for iframe+CSP: token extractor via new tab + manual copy OR
-  // use Google's token info endpoint with user-pasted token
-  
-  // WORKING APPROACH: Open OAuth URL that redirects to a page showing the token
-  // User copies the access_token from URL and pastes it into a prompt in the app
-  var authUrl = 'https://accounts.google.com/o/oauth2/v2/auth'
-    + '?client_id=' + encodeURIComponent(clientId)
-    + '&redirect_uri=' + encodeURIComponent('urn:ietf:wg:oauth:2.0:oob')
-    + '&response_type=token'
-    + '&scope=' + encodeURIComponent(scope)
-    + '&prompt=consent';
-
-  // Show modal asking user to complete auth and paste token
-  showTokenModal(authUrl);
-}
-
-function showTokenModal(authUrl){
-  var existing = document.getElementById('tokenModal');
-  if(existing) existing.remove();
-
-  // Build modal using DOM methods - no string escaping issues
-  var overlay = document.createElement('div');
-  overlay.id = 'tokenModal';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;';
-
-  var box = document.createElement('div');
-  box.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px;width:520px;max-width:95vw;';
-
-  var title = document.createElement('div');
-  title.style.cssText = 'font-size:16px;font-weight:700;margin-bottom:6px;';
-  title.textContent = 'Connect Google Account';
-
-  var sub = document.createElement('div');
-  sub.style.cssText = 'font-size:12.5px;color:var(--text2);margin-bottom:20px;';
-  sub.textContent = 'Complete these steps to connect Google Sheets:';
-
-  var steps = document.createElement('div');
-  steps.style.cssText = 'background:var(--surface2);border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px;line-height:1.9;';
-  steps.innerHTML = '<strong>Step 1:</strong> Click the button below — Google login opens in a new tab<br>'
-    + '<strong>Step 2:</strong> Sign in and approve access<br>'
-    + '<strong>Step 3:</strong> After approving, copy the full URL from your browser address bar<br>'
-    + '<strong>Step 4:</strong> Paste the URL (or just the access_token value) below';
-
-  var link = document.createElement('a');
-  link.href = authUrl;
-  link.target = '_blank';
-  link.style.cssText = 'display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#fff;padding:10px 18px;border-radius:8px;font-size:13.5px;font-weight:600;text-decoration:none;margin-bottom:16px;';
-  link.textContent = 'Open Google Login';
-
-  var label = document.createElement('div');
-  label.style.cssText = 'font-size:11.5px;color:var(--text3);margin-bottom:8px;';
-  label.textContent = 'Paste the full URL or access_token from your browser here:';
-
-  var input = document.createElement('input');
-  input.type = 'text';
-  input.id = 'tokenPasteInput';
-  input.placeholder = 'Paste URL or access_token here...';
-  input.style.cssText = 'width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;outline:none;margin-bottom:14px;box-sizing:border-box;font-family:DM Mono,monospace;';
-
-  var actions = document.createElement('div');
-  actions.style.cssText = 'display:flex;gap:10px;justify-content:flex-end;';
-
-  var cancelBtn = document.createElement('button');
-  cancelBtn.textContent = 'Cancel';
-  cancelBtn.style.cssText = 'background:transparent;border:1px solid var(--border);border-radius:8px;padding:8px 16px;color:var(--text2);cursor:pointer;font-size:13px;font-family:DM Sans,sans-serif;';
-  cancelBtn.onclick = function(){ overlay.remove(); setGoogleStatus('info',''); };
-
-  var connectBtn = document.createElement('button');
-  connectBtn.textContent = 'Connect';
-  connectBtn.style.cssText = 'background:var(--accent);border:none;border-radius:8px;padding:8px 16px;color:#fff;cursor:pointer;font-size:13px;font-weight:600;font-family:DM Sans,sans-serif;';
-  connectBtn.onclick = submitPastedToken;
-
-  actions.appendChild(cancelBtn);
-  actions.appendChild(connectBtn);
-  box.appendChild(title);
-  box.appendChild(sub);
-  box.appendChild(steps);
-  box.appendChild(link);
-  box.appendChild(label);
-  box.appendChild(input);
-  box.appendChild(actions);
-  overlay.appendChild(box);
-  document.body.appendChild(overlay);
-
-  setGoogleStatus('warning','⏳ Complete Google login in the opened tab...');
-  setTimeout(function(){ input.focus(); }, 300);
-}
-
-
-function submitPastedToken(){
-  var inp = document.getElementById('tokenPasteInput');
-  if(!inp) return;
-  var raw = inp.value.trim();
-  if(!raw){ toast('Please paste the access token','error'); return; }
-
-  // Handle full URL pasted, or just token value
-  var token = raw;
-  if(raw.includes('access_token=')){
-    var match = raw.match(/access_token=([^&]+)/);
-    if(match) token = decodeURIComponent(match[1]);
+function startGoogleLogin(){
+  var clientId = DB.config.googleClientId;
+  if(!clientId){
+    // Show client ID input if not configured
+    showClientIdPrompt();
+    return;
   }
-  if(token.length < 20){ toast('Token looks invalid — please check and try again','error'); return; }
-
-  document.getElementById('tokenModal').remove();
-  // Validate token with Google then proceed
-  validateAndConnect(token);
+  launchOAuth(clientId);
 }
 
-async function validateAndConnect(token){
-  setGoogleStatus('warning','⏳ Validating token...');
-  try{
-    var resp = await fetch('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token='+token);
-    var info = await resp.json();
-    if(info.error){ setGoogleStatus('danger','❌ Invalid token: '+info.error); toast('Invalid token','error'); return; }
-    var expiresIn = parseInt(info.expires_in)||3600;
-    onTokenReceived(token, expiresIn);
-  }catch(e){
-    // If tokeninfo fails just proceed — token might still work
-    onTokenReceived(token, 3600);
-  }
+function showClientIdPrompt(){
+  var loginStatus = document.getElementById('loginStatus');
+  loginStatus.innerHTML = 
+    '<div style="text-align:left;margin-top:8px;">'
+    +'<div style="font-size:12px;color:var(--text2);margin-bottom:6px;">Enter your Google OAuth Client ID:</div>'
+    +'<input id="clientIdInput" type="text" placeholder="xxxxxx.apps.googleusercontent.com" '
+    +'style="width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);'
+    +'border-radius:6px;color:var(--text);font-size:12px;outline:none;box-sizing:border-box;">'
+    +'<button onclick="saveClientIdAndLogin()" '
+    +'style="margin-top:8px;width:100%;padding:9px;background:var(--accent);border:none;border-radius:6px;'
+    +'color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:DM Sans,sans-serif;">Continue</button>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:6px;">'
+    +'Get this from <a href="https://console.cloud.google.com" target="_blank" style="color:var(--accent);">Google Cloud Console</a></div>'
+    +'</div>';
 }
 
-
-function onTokenReceived(token, expiresIn){
-  DB.config.googleAccessToken = token;
-  DB.config.googleTokenExpiry = Date.now() + (parseInt(expiresIn)*1000);
-  DB.config.googleEnabled = true;
+function saveClientIdAndLogin(){
+  var inp = document.getElementById('clientIdInput');
+  if(!inp || !inp.value.trim()){return;}
+  DB.config.googleClientId = inp.value.trim();
   localStorage.setItem('rtgs_db', JSON.stringify(DB));
-  updateGoogleBar();
-  setGoogleStatus('success','✅ Token received — initialising sheets...');
-  initGoogleSheets()
-    .then(function(){
-      setGoogleStatus('success','✅ Connected to Google Sheets &nbsp;<a href="https://docs.google.com/spreadsheets/d/'+DB.config.googleSheetId+'" target="_blank" style="color:var(--accent)">📊 Open</a>');
-      toast('Google Sheets connected!','success');
-    })
-    .catch(function(e){
-      setGoogleStatus('danger','❌ Sheet error: '+e.message);
-      toast('Sheet init failed','error');
+  launchOAuth(DB.config.googleClientId);
+}
+
+function launchOAuth(clientId){
+  var loginStatus = document.getElementById('loginStatus');
+  loginStatus.innerHTML = '⏳ Opening Google login...';
+  var scope = encodeURIComponent('https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email');
+  var redirectUri = encodeURIComponent(NETLIFY_URL);
+  var authUrl = 'https://accounts.google.com/o/oauth2/v2/auth'
+    +'?client_id='+encodeURIComponent(clientId)
+    +'&redirect_uri='+redirectUri
+    +'&response_type=token'
+    +'&scope='+scope
+    +'&prompt=consent';
+  window.location.href = authUrl;
+}
+
+function handleOAuthRedirect(){
+  var hash = window.location.hash;
+  if(!hash || !hash.includes('access_token=')) return false;
+  var params = {};
+  hash.slice(1).split('&').forEach(function(p){
+    var kv = p.split('=');
+    params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]||'');
+  });
+  if(!params.access_token) return false;
+  // Clean URL immediately
+  history.replaceState(null,'',window.location.pathname);
+  // Store token temporarily and fetch user info
+  var token = params.access_token;
+  var expiresIn = parseInt(params.expires_in||3600);
+  fetchUserInfo(token, expiresIn);
+  return true;
+}
+
+async function fetchUserInfo(token, expiresIn){
+  showLoginScreen();
+  document.getElementById('loginStatus').textContent = '⏳ Signing in...';
+  try{
+    var resp = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers:{'Authorization':'Bearer '+token}
     });
-}
-
-function setGoogleStatus(type, html){
-  var el = document.getElementById('googleConnectStatus');
-  if(!el) return;
-  var colors = {success:'var(--success)', warning:'var(--warning)', danger:'var(--danger)', info:'var(--accent)'};
-  el.innerHTML = '<span style="color:'+( colors[type]||colors.info)+'">'+html+'</span>';
-}
-
-function disconnectGoogle(){
-  DB.config.googleEnabled = false;
-  DB.config.googleAccessToken = null;
-  DB.config.googleTokenExpiry = null;
-  document.getElementById('googleEnabled').checked = false;
-  document.getElementById('googleConfigSection').style.display = 'none';
-  setGoogleStatus('info','');
-  updateGoogleBar();
-  saveDB();
-  toast('Google account disconnected','info');
+    var info = await resp.json();
+    if(info.error) throw new Error(info.error.message);
+    currentUser = {
+      name: info.name||info.email,
+      email: info.email,
+      picture: info.picture||'',
+      accessToken: token,
+      tokenExpiry: Date.now() + (expiresIn*1000)
+    };
+    // Load user-specific DB from localStorage key
+    loadUserDB();
+    // Then load from sheets if available
+    onLoginSuccess();
+  }catch(e){
+    document.getElementById('loginStatus').textContent = '❌ Sign in failed: '+e.message;
+  }
 }
 
 function isTokenValid(){
-  return !!(DB.config.googleAccessToken && DB.config.googleTokenExpiry && Date.now() < DB.config.googleTokenExpiry);
+  return !!(currentUser && currentUser.accessToken && Date.now() < currentUser.tokenExpiry);
+}
+
+function loadUserDB(){
+  // Each user gets their own localStorage key based on email
+  var key = 'rtgs_db_'+btoa(currentUser.email);
+  try{
+    var s = localStorage.getItem(key);
+    if(s){ var p = JSON.parse(s); DB = Object.assign(DB,p); }
+  }catch(e){}
+  if(!DB.config.fieldMapping) DB.config.fieldMapping = defaultMapping();
+  if(!DB.config.googleClientId && localStorage.getItem('rtgs_client_id')){
+    DB.config.googleClientId = localStorage.getItem('rtgs_client_id');
+  }
+}
+
+function saveUserDB(){
+  if(!currentUser) return;
+  var key = 'rtgs_db_'+btoa(currentUser.email);
+  try{ localStorage.setItem(key, JSON.stringify(DB)); }catch(e){}
+  // Save client ID globally so it persists across logins
+  if(DB.config.googleClientId) localStorage.setItem('rtgs_client_id', DB.config.googleClientId);
+}
+
+async function onLoginSuccess(){
+  // Update sidebar user info
+  document.getElementById('userName').textContent = currentUser.name;
+  document.getElementById('userEmail').textContent = currentUser.email;
+  if(currentUser.picture){
+    var av = document.getElementById('userAvatar');
+    av.src = currentUser.picture;
+    av.style.display = 'block';
+  }
+  // Show app, hide login
+  hideLoginScreen();
+  updateDashboard();
+  // Init or load Google Sheet
+  if(DB.config.googleSheetId){
+    // Sheet exists — load data from it
+    document.getElementById('loginStatus').textContent = '';
+    toast('Loading your data from Google Sheets...','info');
+    await loadFromSheets();
+  } else {
+    // First time — create sheet
+    toast('Setting up your Google Sheet...','info');
+    await initGoogleSheets();
+    toast('Welcome! Your data is ready.','success');
+  }
+}
+
+function signOut(){
+  if(!confirm('Sign out?')) return;
+  currentUser = null;
+  DB = {vendors:[],accounts:[],banks:[],transactions:[],config:{
+    ocrEnabled:false,anthropicApiKey:'',googleEnabled:false,
+    googleEmail:'',googleClientId:DB.config.googleClientId||'',
+    googleSheetId:'',fieldMapping:defaultMapping(),
+    defaultAccountId:null,defaultBankId:null
+  }};
+  showLoginScreen();
+  toast('Signed out','info');
+}
+
+function showLoginScreen(){
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('appLayout').style.display = 'none';
+}
+
+function hideLoginScreen(){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appLayout').style.display = 'flex';
 }
 
 async function gFetch(url, opts){
-  if(!isTokenValid()) throw new Error('Google session expired — please reconnect');
+  if(!isTokenValid()) throw new Error('Session expired — please sign in again');
   opts = opts||{};
-  opts.headers = Object.assign({'Authorization':'Bearer '+DB.config.googleAccessToken,'Content-Type':'application/json'}, opts.headers||{});
+  opts.headers = Object.assign({
+    'Authorization':'Bearer '+currentUser.accessToken,
+    'Content-Type':'application/json'
+  }, opts.headers||{});
   var resp = await fetch(url, opts);
   if(!resp.ok){ var err=await resp.text(); throw new Error(resp.status+' '+err.slice(0,120)); }
   return resp.json();
 }
 
 async function initGoogleSheets(){
-  if(!DB.config.googleSheetId){
-    var data = await gFetch('https://sheets.googleapis.com/v4/spreadsheets',{
-      method:'POST',
-      body:JSON.stringify({
-        properties:{title:'RTGS Payment Manager'},
-        sheets:[
-          {properties:{title:'Vendors',sheetId:0}},
-          {properties:{title:'MyAccounts',sheetId:1}},
-          {properties:{title:'Transactions',sheetId:2}},
-        ]
-      })
-    });
-    DB.config.googleSheetId = data.spreadsheetId;
-    document.getElementById('googleSheetId').value = DB.config.googleSheetId;
-    localStorage.setItem('rtgs_db', JSON.stringify(DB));
-  }
+  if(!isTokenValid()) return;
+  var data = await gFetch('https://sheets.googleapis.com/v4/spreadsheets',{
+    method:'POST',
+    body:JSON.stringify({
+      properties:{title:'RTGS - '+currentUser.email},
+      sheets:[
+        {properties:{title:'Vendors',sheetId:0}},
+        {properties:{title:'MyAccounts',sheetId:1}},
+        {properties:{title:'Transactions',sheetId:2}},
+      ]
+    })
+  });
+  DB.config.googleSheetId = data.spreadsheetId;
+  saveUserDB();
   await syncToSheets();
 }
 
@@ -954,11 +958,11 @@ async function syncToSheets(){
   var sid = DB.config.googleSheetId;
   var base = 'https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values';
   var vRows = [['ID','Name','Account','IFSC','Bank','Branch','AccType','Mobile','Address','LEI']].concat(
-    DB.vendors.map(function(v){return[v.id,v.name,v.account,v.ifsc,v.bank,v.branch,v.acctype,v.mobile,v.address,v.lei||''];}));
+    DB.vendors.map(function(v){return[v.id,v.name||'',v.account||'',v.ifsc||'',v.bank||'',v.branch||'',v.acctype||'',v.mobile||'',v.address||'',v.lei||''];}));
   var aRows = [['ID','Name','Account','AccType','CustID','Address','Mobile','Email','PAN','LEI','Default']].concat(
-    DB.accounts.map(function(a){return[a.id,a.name,a.account,a.acctype,a.custid||'',a.address||'',a.mobile||'',a.email||'',a.pan||'',a.lei||'',(DB.config.defaultAccountId===a.id)?'YES':''];}));
+    DB.accounts.map(function(a){return[a.id,a.name||'',a.account||'',a.acctype||'',a.custid||'',a.address||'',a.mobile||'',a.email||'',a.pan||'',a.lei||'',(DB.config.defaultAccountId===a.id)?'YES':''];}));
   var tRows = [['ID','Date','Vendor','VendorBank','VendorIFSC','VendorAccount','FromAccount','Amount']].concat(
-    DB.transactions.map(function(t){return[t.id,t.date,t.vendorName,t.vendorBank||'',t.vendorIfsc||'',t.vendorAccount||'',t.accountName||'',t.amount];}));
+    DB.transactions.map(function(t){return[t.id,t.date||'',t.vendorName||'',t.vendorBank||'',t.vendorIfsc||'',t.vendorAccount||'',t.accountName||'',t.amount||0];}));
   await gFetch(base+':batchClear',{method:'POST',body:JSON.stringify({ranges:['Vendors!A:Z','MyAccounts!A:Z','Transactions!A:Z']})});
   await gFetch(base+':batchUpdate',{method:'POST',body:JSON.stringify({valueInputOption:'RAW',data:[
     {range:'Vendors!A1',values:vRows},
@@ -968,28 +972,38 @@ async function syncToSheets(){
 }
 
 async function loadFromSheets(){
-  if(!DB.config.googleSheetId||!isTokenValid()){toast('Not connected to Google Sheets','error');return;}
+  if(!DB.config.googleSheetId||!isTokenValid()) return;
   var sid = DB.config.googleSheetId;
   var base = 'https://sheets.googleapis.com/v4/spreadsheets/'+sid+'/values';
-  toast('Loading from Google Sheets...','info');
   try{
     var results = await Promise.all([
       gFetch(base+'/Vendors!A2:J1000'),
       gFetch(base+'/MyAccounts!A2:K1000'),
       gFetch(base+'/Transactions!A2:H1000'),
     ]);
-    if(results[0].values) DB.vendors=results[0].values.map(function(r){return{id:r[0],name:r[1],account:r[2],ifsc:r[3],bank:r[4],branch:r[5],acctype:r[6],mobile:r[7],address:r[8],lei:r[9]||''};});
-    if(results[1].values){
-      DB.accounts=results[1].values.map(function(r){return{id:r[0],name:r[1],account:r[2],acctype:r[3],custid:r[4],address:r[5],mobile:r[6],email:r[7],pan:r[8],lei:r[9]||''};});
+    if(results[0].values&&results[0].values.length)
+      DB.vendors=results[0].values.map(function(r){return{id:r[0]||'',name:r[1]||'',account:r[2]||'',ifsc:r[3]||'',bank:r[4]||'',branch:r[5]||'',acctype:r[6]||'CD',mobile:r[7]||'',address:r[8]||'',lei:r[9]||''};});
+    if(results[1].values&&results[1].values.length){
+      DB.accounts=results[1].values.map(function(r){return{id:r[0]||'',name:r[1]||'',account:r[2]||'',acctype:r[3]||'CD',custid:r[4]||'',address:r[5]||'',mobile:r[6]||'',email:r[7]||'',pan:r[8]||'',lei:r[9]||''};});
       var def=results[1].values.find(function(r){return r[10]==='YES';});
       if(def) DB.config.defaultAccountId=def[0];
     }
-    if(results[2].values) DB.transactions=results[2].values.map(function(r){return{id:r[0],date:r[1],vendorName:r[2],vendorBank:r[3],vendorIfsc:r[4],vendorAccount:r[5],accountName:r[6],amount:parseFloat(r[7]),timestamp:Date.now()};});
-    localStorage.setItem('rtgs_db',JSON.stringify(DB));
+    if(results[2].values&&results[2].values.length)
+      DB.transactions=results[2].values.map(function(r){return{id:r[0]||'',date:r[1]||'',vendorName:r[2]||'',vendorBank:r[3]||'',vendorIfsc:r[4]||'',vendorAccount:r[5]||'',accountName:r[6]||'',amount:parseFloat(r[7])||0,timestamp:Date.now()};});
+    saveUserDB();
     updateDashboard();
-    toast('Loaded from Google Sheets!','success');
-  }catch(e){toast('Load failed: '+e.message,'error');}
+    toast('Data loaded from Google Sheets','success');
+  }catch(e){
+    toast('Could not load from Sheets: '+e.message,'error');
+  }
 }
+
+function connectGoogle(){ toast('You are already connected via Google login','info'); }
+function disconnectGoogle(){ signOut(); }
+function setGoogleStatus(type,html){}
+function updateGoogleBar(){}
+
+
 // ── FIELD MAPPING ──
 var VENDOR_FIELDS=[
   {value:'name',label:'Name'},{value:'account',label:'Account Number'},
@@ -1023,11 +1037,20 @@ function initConfigPage(){
   document.getElementById('ocrEnabled').checked=DB.config.ocrEnabled;
   document.getElementById('anthropicApiKey').value=DB.config.anthropicApiKey||'';
   document.getElementById('ocrApiSection').style.display=DB.config.ocrEnabled?'block':'none';
-  document.getElementById('googleEnabled').checked=DB.config.googleEnabled;
-  document.getElementById('googleEmail').value=DB.config.googleEmail||'';
-  document.getElementById('googleClientId').value=DB.config.googleClientId||'';
-  document.getElementById('googleSheetId').value=DB.config.googleSheetId||'';
-  document.getElementById('googleConfigSection').style.display=DB.config.googleEnabled?'block':'none';
+  var cidEl = document.getElementById('googleClientId');
+  if(cidEl) cidEl.value=DB.config.googleClientId||localStorage.getItem('rtgs_client_id')||'';
+  // Show current user info in Google config panel
+  var infoEl = document.getElementById('googleAccountInfo');
+  if(infoEl && currentUser){
+    infoEl.innerHTML = '<div style="display:flex;align-items:center;gap:10px;background:var(--surface2);padding:12px;border-radius:8px;">'
+      +(currentUser.picture?'<img src="'+currentUser.picture+'" style="width:36px;height:36px;border-radius:50%;">':'')
+      +'<div><div style="font-weight:600;font-size:13.5px;">'+currentUser.name+'</div>'
+      +'<div style="font-size:12px;color:var(--text3);">'+currentUser.email+'</div>'
+      +(DB.config.googleSheetId?'<a href="https://docs.google.com/spreadsheets/d/'+DB.config.googleSheetId+'" target="_blank" style="font-size:11px;color:var(--accent);">📊 View your Sheet</a>':'')
+      +'</div>'
+      +'<span style="margin-left:auto;font-size:11px;color:var(--success);">✅ Connected</span>'
+      +'</div>';
+  }
   renderAccounts();renderBanks();renderFieldMapping();
 }
 
@@ -1330,24 +1353,17 @@ function exportHistory(){
 
 
 
-function openSheet(){
-  if(DB.config.googleSheetId) window.open('https://docs.google.com/spreadsheets/d/'+DB.config.googleSheetId,'_blank');
-  else toast('No sheet linked yet — connect first','info');
-}
 
 // ── INIT ──
-loadDB();updateDashboard();updateGoogleBar();
-// Restore connection status display
-if(DB.config.googleEnabled && isTokenValid()){
-  setTimeout(function(){
-    setGoogleStatus('success','✅ Connected &nbsp;<a href="https://docs.google.com/spreadsheets/d/'+(DB.config.googleSheetId||'')+'" target="_blank" style="color:var(--accent)">📊 Open Sheet</a>');
-  },100);
-} else if(DB.config.googleEnabled && !isTokenValid()){
-  setTimeout(function(){ setGoogleStatus('warning','⚠️ Session expired — click Connect again'); },100);
+loadDB();
+// Check if returning from Google OAuth redirect
+if(!handleOAuthRedirect()){
+  // Not an OAuth redirect — show login screen
+  showLoginScreen();
 }
 if(!DB.banks.length){
   var defBank={id:genId(),bankname:'Central Bank of India',branch:'',ifsc:'',address:'',pdfData:null};
-  DB.banks.push(defBank);DB.config.defaultBankId=defBank.id;saveDB();
+  DB.banks.push(defBank);DB.config.defaultBankId=defBank.id;
 }
 </script>
 </body>
