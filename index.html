@@ -384,7 +384,13 @@ td.text-main{color:var(--text);font-weight:500;}
       <div class="form-group form-full"><label class="form-label">Vendor Name *</label><input type="text" class="form-input" id="v_name" placeholder="Business / Person Name"></div>
       <div class="form-group"><label class="form-label">Account Number *</label><input type="text" class="form-input" id="v_account" placeholder="Account number"></div>
       <div class="form-group"><label class="form-label">Confirm Account Number *</label><input type="text" class="form-input" id="v_account2" placeholder="Re-enter account number"></div>
-      <div class="form-group"><label class="form-label">IFSC Code *</label><input type="text" class="form-input" id="v_ifsc" placeholder="SBIN0001234" style="text-transform:uppercase"></div>
+      <div class="form-group"><label class="form-label">IFSC Code *</label>
+          <div style="position:relative;">
+            <input type="text" class="form-input" id="v_ifsc" placeholder="SBIN0001234" style="text-transform:uppercase;padding-right:80px;" oninput="this.value=this.value.toUpperCase()" onblur="lookupIFSC()">
+            <span id="ifscLookupStatus" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text3);pointer-events:none;"></span>
+          </div>
+          <div class="text-sm" style="margin-top:3px;">Bank &amp; Branch will auto-fill on entering IFSC</div>
+        </div>
       <div class="form-group"><label class="form-label">Bank Name *</label><input type="text" class="form-input" id="v_bank" placeholder="e.g. State Bank of India"></div>
       <div class="form-group"><label class="form-label">Branch Name</label><input type="text" class="form-input" id="v_branch" placeholder="Branch name"></div>
       <div class="form-group"><label class="form-label">Account Type</label><select class="form-select" id="v_acctype"><option value="CD">Current (CD)</option><option value="HSS">Savings (HSS)</option><option value="CC">Cash Credit (CC)</option><option value="OD">Overdraft (OD)</option></select></div>
@@ -463,13 +469,19 @@ function defaultMapping(){return[
   {rtgsField:'Beneficiary Mobile',vendorField:'mobile',label:'Mobile No.'},
 ];}
 
-function loadDB(){if(!DB.config.fieldMapping)DB.config.fieldMapping=defaultMapping();var cid=localStorage.getItem('rtgs_client_id');if(cid)DB.config.googleClientId=cid;}
+function loadDB(){
+  // LOGIN BYPASSED — using plain localStorage
+  try{var s=localStorage.getItem('rtgs_db_test');if(s){var p=JSON.parse(s);DB=Object.assign(DB,p);}}catch(e){}
+  if(!DB.config.fieldMapping)DB.config.fieldMapping=defaultMapping();
+}
 function saveDB(){
-  saveUserDB();
-  updateDashboard();
+  // LOGIN BYPASSED — using plain localStorage
+  try{localStorage.setItem('rtgs_db_test', JSON.stringify(DB));}catch(e){}
+  /* saveUserDB();
   if(isTokenValid()){
     syncToSheets().catch(function(e){console.warn('Sheets sync:',e.message);});
-  }
+  } */
+  updateDashboard();
 }
 function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 
@@ -550,6 +562,34 @@ function openVendorModal(id){
     }
   }
   openModal('vendorModal');
+}
+
+async function lookupIFSC(){
+  var ifsc = document.getElementById('v_ifsc').value.trim().toUpperCase();
+  if(ifsc.length !== 11){return;}
+  var statusEl = document.getElementById('ifscLookupStatus');
+  statusEl.textContent = '⏳ Looking up...';
+  statusEl.style.color = 'var(--warning)';
+  try{
+    var resp = await fetch('https://ifsc.razorpay.com/'+ifsc);
+    if(!resp.ok) throw new Error('Not found');
+    var data = await resp.json();
+    // Auto fill bank and branch
+    if(data.BANK){
+      var bankEl = document.getElementById('v_bank');
+      var branchEl = document.getElementById('v_branch');
+      if(bankEl && !bankEl.value) bankEl.value = data.BANK;
+      if(branchEl && !branchEl.value) branchEl.value = data.BRANCH||'';
+      statusEl.textContent = '✅ Found';
+      statusEl.style.color = 'var(--success)';
+      toast('Bank details auto-filled from IFSC','success');
+      setTimeout(function(){statusEl.textContent='';},3000);
+    }
+  }catch(e){
+    statusEl.textContent = '❌ Invalid IFSC';
+    statusEl.style.color = 'var(--danger)';
+    setTimeout(function(){statusEl.textContent='';},3000);
+  }
 }
 
 function saveVendor(){
@@ -1356,11 +1396,12 @@ function exportHistory(){
 
 // ── INIT ──
 loadDB();
-// Check if returning from Google OAuth redirect
-if(!handleOAuthRedirect()){
-  // Not an OAuth redirect — show login screen
+// LOGIN BYPASSED FOR TESTING
+/* if(!handleOAuthRedirect()){
   showLoginScreen();
-}
+} */
+hideLoginScreen(); // show app directly
+updateDashboard();
 if(!DB.banks.length){
   var defBank={id:genId(),bankname:'Central Bank of India',branch:'',ifsc:'',address:'',pdfData:null};
   DB.banks.push(defBank);DB.config.defaultBankId=defBank.id;
