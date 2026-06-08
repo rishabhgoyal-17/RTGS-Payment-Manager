@@ -469,19 +469,13 @@ function defaultMapping(){return[
   {rtgsField:'Beneficiary Mobile',vendorField:'mobile',label:'Mobile No.'},
 ];}
 
-function loadDB(){
-  // LOGIN BYPASSED — using plain localStorage
-  try{var s=localStorage.getItem('rtgs_db_test');if(s){var p=JSON.parse(s);DB=Object.assign(DB,p);}}catch(e){}
-  if(!DB.config.fieldMapping)DB.config.fieldMapping=defaultMapping();
-}
+function loadDB(){if(!DB.config.fieldMapping)DB.config.fieldMapping=defaultMapping();var cid=localStorage.getItem('rtgs_client_id');if(cid)DB.config.googleClientId=cid;}
 function saveDB(){
-  // LOGIN BYPASSED — using plain localStorage
-  try{localStorage.setItem('rtgs_db_test', JSON.stringify(DB));}catch(e){}
-  /* saveUserDB();
+  saveUserDB();
+  updateDashboard();
   if(isTokenValid()){
     syncToSheets().catch(function(e){console.warn('Sheets sync:',e.message);});
-  } */
-  updateDashboard();
+  }
 }
 function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 
@@ -1396,12 +1390,11 @@ function exportHistory(){
 
 // ── INIT ──
 loadDB();
-// LOGIN BYPASSED FOR TESTING
-/* if(!handleOAuthRedirect()){
+// Check if returning from Google OAuth redirect
+if(!handleOAuthRedirect()){
+  // Not an OAuth redirect — show login screen
   showLoginScreen();
-} */
-hideLoginScreen(); // show app directly
-updateDashboard();
+}
 if(!DB.banks.length){
   var defBank={id:genId(),bankname:'Central Bank of India',branch:'',ifsc:'',address:'',pdfData:null};
   DB.banks.push(defBank);DB.config.defaultBankId=defBank.id;
