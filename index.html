@@ -4,7 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RTGS Payment Manager</title>
+<!-- Open Graph / Social sharing -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://rtgs-payment-manager.netlify.app">
+<meta property="og:title" content="RTGS Payment Manager">
+<meta property="og:description" content="Automate RTGS/NEFT form filling for Central Bank of India. Vendor master, OCR bill scanning, AI assistant, Google Sheets sync.">
+<meta property="og:image" content="https://rtgs-payment-manager.netlify.app/og-image.png">
+
+<!-- Twitter / X card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="RTGS Payment Manager">
+<meta name="twitter:description" content="Automate RTGS/NEFT form filling. Vendor master, OCR, AI assistant, Google Sheets sync.">
+<meta name="twitter:image" content="https://rtgs-payment-manager.netlify.app/og-image.png">
 <link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='16' fill='%231a1d27'/><text y='30' x='50' text-anchor='middle' font-size='18' fill='%234f7fff' font-family='sans-serif' font-weight='700'>RTGS</text><text y='55' x='50' text-anchor='middle' font-size='36'>🏦</text></svg>">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 </head>
 <body>
@@ -19,11 +32,25 @@
       <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z"/></svg>
       Sign in with Google
     </button>
+    <div style="display:flex;align-items:center;gap:10px;margin:16px 0;">
+      <div style="flex:1;height:1px;background:var(--border);"></div>
+      <div style="font-size:11px;color:var(--text3);">or</div>
+      <div style="flex:1;height:1px;background:var(--border);"></div>
+    </div>
+    <button onclick="enterDemoMode()" style="width:100%;padding:11px 20px;background:transparent;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13.5px;font-weight:500;color:var(--text2);font-family:DM Sans,sans-serif;transition:all .15s;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+      👁️ Try Demo — no login required
+    </button>
+    <div style="font-size:11px;color:var(--text3);margin-top:8px;">Sample data only · nothing is saved to any account</div>
     <div id="loginStatus" style="margin-top:16px;font-size:12.5px;color:var(--text3);min-height:20px;"></div>
   </div>
 </div>
 
 <div class="app-layout" id="appLayout" style="display:none;">
+  <!-- Demo mode banner -->
+  <div id="demoBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:999;background:linear-gradient(90deg,#f59e0b,#f97316);color:#fff;text-align:center;padding:8px 16px;font-size:13px;font-weight:600;letter-spacing:0.2px;">
+    👁️ Demo Mode — sample data only, nothing is saved &nbsp;·&nbsp;
+    <button onclick="exitDemoMode()" style="background:rgba(255,255,255,0.25);border:none;border-radius:4px;padding:2px 10px;color:#fff;font-weight:700;cursor:pointer;font-size:12px;margin-left:4px;">Exit Demo</button>
+  </div>
   <div class="sidebar">
     <div class="sidebar-logo">
       <div class="logo-text">💳 RTGS Manager</div>
@@ -37,6 +64,8 @@
       <div class="nav-section-label">Setup</div>
       <div class="nav-item" id="nav-vendors" onclick="showPage('vendors')"><span class="nav-icon">👥</span>Vendor Master</div>
       <div class="nav-item" id="nav-config" onclick="showPage('config')"><span class="nav-icon">⚙️</span>Configuration</div>
+      <div class="nav-section-label">AI</div>
+      <div class="nav-item" id="nav-assistant" onclick="showPage('assistant')"><span class="nav-icon">🤖</span>AI Assistant</div>
     </nav>
     <div class="sidebar-footer">
       <div id="userInfo" style="display:flex;align-items:center;gap:8px;">
@@ -116,9 +145,12 @@
         <div class="step-body">
           <div class="step-title">Select Vendor &amp; Account</div>
           <div class="form-grid">
-            <div class="form-group">
+            <div class="form-group" style="position:relative;">
               <label class="form-label">Vendor</label>
-              <select class="form-select" id="paymentVendor" onchange="onVendorSelect()"><option value="">-- Select Vendor --</option></select>
+              <input type="text" class="form-input" id="vendorSearchInput" placeholder="Type 3+ characters to search vendor..." autocomplete="off"
+                oninput="onVendorSearchInput()" onfocus="onVendorSearchInput()" onblur="setTimeout(hideVendorDropdown,150)">
+              <input type="hidden" id="paymentVendor">
+              <div id="vendorDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:100;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-top:4px;max-height:240px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.3);"></div>
             </div>
             <div class="form-group">
               <label class="form-label">From Account</label>
@@ -154,10 +186,12 @@
         <div class="step-num">4</div>
         <div class="step-body">
           <div class="step-title">Generate RTGS Form</div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
             <button class="btn btn-primary" onclick="previewRTGS()">👁️ Preview Form</button>
-            <button class="btn btn-success" id="generatePdfBtn" onclick="generateRTGSPDF()" style="display:none;">📥 Download PDF</button>
+            <button class="btn btn-success" id="saveTransactionBtn" onclick="saveTransaction()" style="display:none;">✅ Save Transaction</button>
+            <button class="btn btn-primary" id="generatePdfBtn" onclick="generateRTGSPDF()" style="display:none;">📥 Download PDF</button>
           </div>
+          <div id="transactionSavedNote" style="display:none;font-size:12px;color:var(--success);margin-top:8px;">✅ Transaction saved — download PDF as many times as needed</div>
           <div id="rtgsPreviewArea" style="margin-top:16px;display:none;"></div>
         </div>
       </div>
@@ -167,7 +201,10 @@
     <div class="page" id="page-history">
       <div class="page-header flex-between">
         <div><div class="page-title">Transaction History</div><div class="page-sub">All RTGS payment records</div></div>
-        <button class="btn btn-ghost btn-sm" onclick="exportHistory()">⬇️ Export CSV</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="fixCorruptedHistory()" title="Fix records affected by an earlier sync bug">🔧 Fix Data</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportHistory()">⬇️ Export CSV</button>
+        </div>
       </div>
       <div class="card"><div class="table-wrap"><table><thead><tr><th>Date</th><th>Vendor</th><th>Bank / IFSC</th><th>Account No.</th><th>Amount</th><th>From Account</th><th>Actions</th></tr></thead><tbody id="historyTableBody"></tbody></table></div></div>
     </div>
@@ -178,7 +215,7 @@
       <div class="config-tabs">
         <div class="config-tab active" onclick="showConfigTab('accounts',this)">👤 My Accounts</div>
         <div class="config-tab" onclick="showConfigTab('banks',this)">🏦 Banks &amp; Branches</div>
-        <div class="config-tab" onclick="showConfigTab('ocr',this)">🔍 OCR Settings</div>
+        <div class="config-tab" onclick="showConfigTab('ocr',this)">🤖 Agent Configuration</div>
         <div class="config-tab" onclick="showConfigTab('google',this)">☁️ Google Sheets</div>
         <div class="config-tab" onclick="showConfigTab('fieldmap',this)">🗺️ Field Mapping</div>
       </div>
@@ -191,18 +228,35 @@
         <div id="banksList"></div>
       </div>
       <div class="config-panel" id="config-ocr">
-        <div class="card"><div class="card-title">🔍 OCR Settings</div>
-          <label class="toggle-wrap" style="margin-bottom:12px;">
-            <label class="toggle"><input type="checkbox" id="ocrEnabled" onchange="saveOcrSettings()"><span class="toggle-slider"></span></label>
-            <span class="toggle-label">Enable OCR — auto extract vendor &amp; amount from bill</span>
-          </label>
-          <div class="text-sm" style="margin-left:50px;margin-bottom:16px;">OCR OFF = zero cost. Bill attached for reference only, select vendor manually.</div>
-          <div id="ocrApiSection" style="display:none;">
+        <div class="card">
+          <div class="card-title">🤖 Agent Configuration</div>
+          <div class="text-sm" style="margin-bottom:16px;color:var(--text2);">Both OCR and AI Assistant use the same Anthropic API key. Enable each independently based on your needs.</div>
+
+          <!-- OCR Toggle -->
+          <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:14px;margin-bottom:12px;">
+            <label class="toggle-wrap" style="margin-bottom:8px;">
+              <label class="toggle"><input type="checkbox" id="ocrEnabled" onchange="saveAgentSettings()"><span class="toggle-slider"></span></label>
+              <span class="toggle-label" style="font-weight:600;">📷 OCR — Bill Scanning</span>
+            </label>
+            <div class="text-sm" style="margin-left:50px;">Auto-extract vendor name &amp; amount from uploaded bill image. ~₹0.20 per bill.</div>
+          </div>
+
+          <!-- AI Assistant Toggle -->
+          <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;">
+            <label class="toggle-wrap" style="margin-bottom:8px;">
+              <label class="toggle"><input type="checkbox" id="aiAssistantEnabled" onchange="saveAgentSettings()"><span class="toggle-slider"></span></label>
+              <span class="toggle-label" style="font-weight:600;">🤖 AI Assistant — Chat Payments</span>
+            </label>
+            <div class="text-sm" style="margin-left:50px;">Create payments by typing or speaking naturally. ~₹0.50 per conversation.</div>
+          </div>
+
+          <!-- API Key — shown if either is enabled -->
+          <div id="agentApiSection" style="display:none;">
             <div class="divider"></div>
             <div class="form-group" style="max-width:480px;">
               <label class="form-label">Anthropic API Key</label>
-              <input type="password" class="form-input" id="anthropicApiKey" placeholder="sk-ant-..." oninput="saveOcrSettings()">
-              <div class="text-sm" style="margin-top:4px;">Get at <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent);">console.anthropic.com</a> · ~₹0.20 per bill</div>
+              <input type="password" class="form-input" id="anthropicApiKey" placeholder="sk-ant-..." oninput="saveAgentSettings()">
+              <div class="text-sm" style="margin-top:4px;">Get at <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent);">console.anthropic.com</a> · Used for both OCR &amp; AI Assistant</div>
             </div>
           </div>
         </div>
@@ -211,22 +265,28 @@
         <div class="card">
           <div class="card-title">☁️ Google Account</div>
           <div id="googleAccountInfo" style="margin-bottom:16px;"></div>
-          <div class="form-group" style="max-width:480px;margin-bottom:16px;">
-            <label class="form-label">Google OAuth Client ID</label>
-            <input type="text" class="form-input" id="googleClientId" placeholder="xxxxxxx.apps.googleusercontent.com" oninput="DB.config.googleClientId=this.value;localStorage.setItem('rtgs_client_id',this.value);">
-            <div class="text-sm" style="margin-top:4px;">Required for Google login. Get from <a href="https://console.cloud.google.com" target="_blank" style="color:var(--accent);">Google Cloud Console</a></div>
-          </div>
+
           <div style="display:flex;gap:10px;flex-wrap:wrap;">
             <button class="btn btn-ghost btn-sm" onclick="loadFromSheets()">⬇️ Reload from Sheets</button>
             <button class="btn btn-ghost btn-sm" onclick="if(DB.config.googleSheetId)window.open('https://docs.google.com/spreadsheets/d/'+DB.config.googleSheetId,'_blank');else toast('No sheet linked yet','info')">📊 Open Sheet</button>
             <button class="btn btn-danger btn-sm" onclick="signOut()">⏻ Sign Out</button>
           </div>
-          <div class="divider"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">👥 Team Access</div>
+          <div class="text-sm" style="margin-bottom:12px;">
+            Invite teammates to share this vendor master and transaction history. They'll see the same data as you.
+          </div>
+          <div id="teamInviteSection"></div>
+        </div>
+
+        <div class="card">
           <div class="text-sm" style="line-height:1.9;background:var(--surface2);padding:12px;border-radius:var(--radius-sm);">
             <strong style="color:var(--text2);">Google Cloud Setup (one time):</strong><br>
             1. <a href="https://console.cloud.google.com" target="_blank" style="color:var(--accent);">console.cloud.google.com</a> → Create project<br>
             2. Enable <strong>Google Sheets API</strong> + <strong>Google Drive API</strong> + <strong>Google People API</strong><br>
-            3. OAuth consent screen → External → Add your email as Test User<br>
+            3. OAuth consent screen → External → Add team members' emails as Test Users<br>
             4. Credentials → OAuth 2.0 Client ID → Web Application<br>
             5. Authorised JavaScript origins: <code style="background:var(--surface);padding:2px 6px;border-radius:3px;">https://rtgs-payment-manager.netlify.app</code><br>
             6. Authorised redirect URIs: <code style="background:var(--surface);padding:2px 6px;border-radius:3px;">https://rtgs-payment-manager.netlify.app</code><br>
@@ -246,7 +306,57 @@
       </div>
     </div>
 
+  
+
+
+
+
+
+<!-- ASSISTANT PAGE -->
+<div id="page-assistant" class="page">
+  <div class="page-header flex-between">
+    <div>
+      <div class="page-title">🤖 AI Assistant</div>
+      <div class="page-sub">Create payments by typing naturally</div>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="newChat()">🔄 New Chat</button>
   </div>
+  <div id="assistantDisabled" style="display:none;">
+    <div class="card" style="text-align:center;padding:40px 20px;">
+      <div style="font-size:36px;margin-bottom:12px;">🤖</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:8px;">AI Assistant is disabled</div>
+      <div style="font-size:13px;color:var(--text3);margin-bottom:20px;">Enable it in Configuration → Agent Configuration to get started.</div>
+      <button class="btn btn-primary" onclick="showPage('config');setTimeout(function(){showConfigTab('ocr',document.querySelector('.config-tab:nth-child(3)'));},200)">⚙️ Go to Configuration</button>
+    </div>
+  </div>
+  <div id="assistantEnabled" style="display:none;">
+    <!-- Quick prompts -->
+    <div class="card" id="quickPromptsCard">
+      <div class="card-title">💡 Try asking</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        <button class="chip" onclick="setAssistantPrompt('Create a payment for Alpha Construction of ₹50,000')">💸 Create payment</button>
+        <button class="chip" onclick="setAssistantPrompt('Find vendor Bharat Steel')">🔍 Find vendor</button>
+        <button class="chip" onclick="setAssistantPrompt('Show me last 5 transactions')">🕐 Recent transactions</button>
+        <button class="chip" onclick="setAssistantPrompt('Create payment for the last vendor I paid')">🔄 Repeat last payment</button>
+      </div>
+    </div>
+    <!-- Chat window -->
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div id="chatMessages" style="height:380px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">
+      </div>
+      <div style="border-top:1px solid var(--border);padding:12px;display:flex;gap:8px;align-items:flex-end;">
+        <textarea id="chatInput" placeholder="e.g. Create payment for Taj Traders of ₹25,000..." rows="2"
+          style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:16px;resize:none;outline:none;font-family:DM Sans,sans-serif;line-height:1.5;"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAssistantMessage();}"></textarea>
+        <button class="btn btn-primary" onclick="sendAssistantMessage()" style="height:44px;min-width:44px;padding:0 14px;">
+          <span id="chatSendIcon">➤</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
 </div>
 
 <!-- VENDOR MODAL -->
@@ -262,11 +372,9 @@
         </div>
 
       <div class="form-group"><label class="form-label">IFSC Code *</label>
-          <div style="position:relative;">
-            <input type="text" class="form-input" id="v_ifsc" placeholder="SBIN0001234" style="text-transform:uppercase;padding-right:80px;" oninput="this.value=this.value.toUpperCase()" onblur="lookupIFSC()">
-            <span id="ifscLookupStatus" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text3);pointer-events:none;"></span>
-          </div>
-          <div class="text-sm" style="margin-top:3px;">Bank &amp; Branch will auto-fill on entering IFSC</div>
+          <input type="text" class="form-input" id="v_ifsc" placeholder="SBIN0001234" maxlength="11" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()" onblur="lookupIFSC()">
+          <div id="ifscLookupStatus" style="font-size:11.5px;margin-top:4px;min-height:16px;display:none;"></div>
+          <div class="text-sm" style="margin-top:3px;">Bank, Branch &amp; Address auto-fill on entering 11-char IFSC</div>
         </div>
       <div class="form-group"><label class="form-label">Bank Name *</label><input type="text" class="form-input" id="v_bank" placeholder="e.g. State Bank of India"></div>
       <div class="form-group"><label class="form-label">Branch Name</label><input type="text" class="form-input" id="v_branch" placeholder="Branch name"></div>
@@ -280,7 +388,11 @@
       <div class="form-group"><label class="form-label">LEI No. (optional)</label><input type="text" class="form-input" id="v_lei" placeholder="For ₹50Cr+ transactions"></div>
     </div>
     <input type="hidden" id="v_editId">
-    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('vendorModal')">Cancel</button><button class="btn btn-primary" onclick="saveVendor()">💾 Save Vendor</button></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="resetVendorForm()">↺ Reset</button>
+      <button class="btn btn-ghost" onclick="closeModal('vendorModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveVendor()">💾 Save Vendor</button>
+    </div>
   </div>
 </div>
 
@@ -328,6 +440,36 @@
     <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal('bankModal')">Cancel</button><button class="btn btn-primary" onclick="saveBank()">💾 Save Bank</button></div>
   </div>
 </div>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav class="bottom-nav" id="bottomNav">
+  <div class="bottom-nav-item active" id="bnav-dashboard" onclick="showPage('dashboard')">
+    <span class="bnav-icon">📊</span>
+    <span class="bnav-label">Dashboard</span>
+  </div>
+  <div class="bottom-nav-item" id="bnav-payment" onclick="showPage('payment')">
+    <span class="bnav-icon">💸</span>
+    <span class="bnav-label">Payment</span>
+  </div>
+  <div class="bottom-nav-item" id="bnav-vendors" onclick="showPage('vendors')">
+    <span class="bnav-icon">👥</span>
+    <span class="bnav-label">Vendors</span>
+  </div>
+  <div class="bottom-nav-item" id="bnav-history" onclick="showPage('history')">
+    <span class="bnav-icon">🕐</span>
+    <span class="bnav-label">History</span>
+  </div>
+  <div class="bottom-nav-item" id="bnav-config" onclick="showPage('config')">
+    <span class="bnav-icon">⚙️</span>
+    <span class="bnav-label">Config</span>
+  </div>
+  <div class="bottom-nav-item" id="bnav-assistant" onclick="showPage('assistant')">
+    <span class="bnav-icon">🤖</span>
+    <span class="bnav-label">Assistant</span>
+  </div>
+</nav>
+
+
 
 <div class="toast-wrap" id="toastWrap"></div>
 
